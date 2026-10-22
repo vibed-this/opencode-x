@@ -58,9 +58,20 @@ describe("shell", () => {
       "-NoProfile",
       "-NonInteractive",
       "-Command",
-      "Write-Output hi",
+      process.platform === "win32" ? expect.stringContaining("Write-Output hi") : "Write-Output hi",
     ])
   })
+
+  if (process.platform === "win32") {
+    test("leaves PowerShell commands that must own the script header unprologued", () => {
+      for (const command of [
+        "using namespace System.Text; [StringBuilder]::new()",
+        "param($p) $p",
+        "#Requires -Version 7\n$PSVersionTable",
+      ])
+        expect(ShellSelect.args("pwsh", command).at(-1)).toBe(command)
+    })
+  }
 
   if (process.platform !== "win32") {
     test("resolves the environment shell without retaining a removed executable", async () => {

@@ -927,6 +927,29 @@ describe("ShellTool", () => {
   )
 
   productionIt.live(
+    "preserves non-ASCII output from the shell",
+    () =>
+      Effect.acquireUseRelease(
+        Effect.promise(() => tmpdir()),
+        (tmp) => {
+          reset()
+          return withSession(tmp.path, (registry) =>
+            Effect.gen(function* () {
+              const settled = yield* executeTool(
+                registry,
+                call({ command: isWindows ? "Write-Output '中文 ünïcode'" : "printf '中文 ünïcode'" }),
+              )
+              expect(settled.status).toBe("completed")
+              expect(settled.content).toEqual([Expected.text(isWindows ? "中文 ünïcode\r\n" : "中文 ünïcode")])
+            }),
+          )
+        },
+        (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]().then(() => undefined)),
+      ),
+    { timeout: 15_000 },
+  )
+
+  productionIt.live(
     "uses the session environment instead of the server environment",
     () =>
       Effect.acquireUseRelease(
