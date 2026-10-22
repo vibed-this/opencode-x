@@ -161,10 +161,24 @@ function info(file: string, options?: Options, bin?: string): Item {
   }
 }
 
+// Windows PowerShell initializes its output encoder from the OEM code page, while captured shell
+// output is decoded as UTF-8, so every non-ASCII character arrives as U+FFFD. Assigning the
+// encoders once the host writer exists is too late, so prepend them to the command. `$OutputEncoding`
+// covers text piped to native children, which is separate from `[Console]::OutputEncoding`.
+const PS_UTF8 =
+  "try{$OutputEncoding=[Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)}catch{};"
+// Statements that must stay at the top of the script cannot follow the prologue.
+const PS_HEADER = /^\s*(?:using\s|param\s*\(|\[CmdletBinding|#Requires)/i
+
+function utf8(command: string) {
+  if (process.platform !== "win32" || PS_HEADER.test(command)) return command
+  return `${PS_UTF8}${command}`
+}
+
 export function args(file: string, command: string) {
   const n = name(file)
   if (n === "cmd") return ["/c", command]
-  if (ps(file)) return ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command]
+  if (ps(file)) return ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", utf8(command)]
   return ["-c", command]
 }
 
