@@ -43,6 +43,41 @@
 
 ---
 
+### Windows fork build (this fork only)
+
+This fork carries one fix on top of upstream `v2.1.3`: PowerShell's output encoders are
+set to UTF-8 before the command runs, so non-ASCII text returned by the shell tool no
+longer arrives as U+FFFD replacement characters
+(`packages/core/src/shell/select.ts`).
+
+The release page publishes that build as an installable npm package, so installing and
+updating are ordinary `npm` commands against the npm global prefix. Nothing is patched
+by hand.
+
+```bash
+# install. npm refuses two packages claiming the same bin name, so free the names first:
+# the running binary locks itself, hence the service stop before removing the package.
+opencode service stop
+npm rm -g @opencode/cli
+npm i -g https://github.com/vibed-this/opencode-x/releases/latest/download/opencode-x.tgz
+
+# update (re-run the same command after a new fork release)
+npm i -g https://github.com/vibed-this/opencode-x/releases/latest/download/opencode-x.tgz
+
+# inspect / go back to upstream
+npm ls -g opencode-x
+npm rm -g opencode-x && npm i -g @opencode/cli
+```
+
+The package installs `opencode` and `opencode-x`. It is Windows x64 only, and the build
+is stamped `latest`, so it shares the upstream database, service registration file, and
+TUI storage instead of starting a separate profile.
+
+Do not run `opencode upgrade`: it installs upstream `@opencode/cli` again and replaces
+this CLI. Update with the `npm i -g` command above.
+
+---
+
 ### Installation
 
 ```bash
